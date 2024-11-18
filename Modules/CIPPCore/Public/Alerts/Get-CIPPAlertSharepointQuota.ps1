@@ -12,7 +12,7 @@ function Get-CIPPAlertSharepointQuota {
         $TenantFilter
     )
     Try {
-        $tenantName = (New-GraphGetRequest -uri 'https://graph.microsoft.com/beta/sites/root' -tenantid $TenantFilter).id.Split('.')[0]
+            $tenantName = (New-GraphGetRequest -uri 'https://graph.microsoft.com/beta/sites/root' -asApp $true -tenantid $TenantFilter).id.Split('.')[0]
         $sharepointToken = (Get-GraphToken -scope "https://$($tenantName)-admin.sharepoint.com/.default" -tenantid $TenantFilter)
         $sharepointToken.Add('accept', 'application/json')
         $sharepointQuota = (Invoke-RestMethod -Method 'GET' -Headers $sharepointToken -Uri "https://$($tenantName)-admin.sharepoint.com/_api/StorageQuotas()?api-version=1.3.2" -ErrorAction Stop).value
@@ -27,7 +27,7 @@ function Get-CIPPAlertSharepointQuota {
         }
         $UsedStoragePercentage = [int](($sharepointQuota.GeoUsedStorageMB / $sharepointQuota.TenantStorageMB) * 100)
         if ($UsedStoragePercentage -gt $Value) {
-            $AlertData = "SharePoint Storage is at $($UsedStoragePercentage)%. Your alert threshold is $($Value)%"
+            $AlertData = "SharePoint Storage is at $($UsedStoragePercentage)% [$([math]::Round($sharepointQuota.GeoUsedStorageMB / 1024, 2)) GB/$([math]::Round($sharepointQuota.TenantStorageMB / 1024, 2)) GB]. Your alert threshold is $($Value)%"
             Write-AlertTrace -cmdletName $MyInvocation.MyCommand -tenantFilter $TenantFilter -data $AlertData
         }
     }
